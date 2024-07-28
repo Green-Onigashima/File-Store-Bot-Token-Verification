@@ -11,7 +11,7 @@ from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 
 from bot import Bot
 from config import *
-from helper_func import get_readable_time, increasepremtime, subscribed, subscribed2, decode, get_messages, get_shortlink, get_verify_status, update_verify_status, get_exp_time
+from helper_func import get_readable_time, increasepremtime, decode, get_messages, get_shortlink, get_verify_status, update_verify_status, get_exp_time
 from database.database import add_admin, add_user, del_admin, del_user, full_adminbase, full_userbase, present_admin, present_user
 
 SECONDS = TIME 
