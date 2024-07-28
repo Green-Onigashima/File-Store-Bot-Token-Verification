@@ -1,42 +1,56 @@
-
-import os
 import asyncio
-from pyrogram import Client, filters, __version__
+from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, ChatJoinRequest
+from pyrogram.errors import FloodWait
 
 from bot import Bot
-from config import ADMINS, FORCE_MSG, START_MSG, CUSTOM_CAPTION, DISABLE_CHANNEL_BUTTON, PROTECT_CONTENT, DELAY
-from helper_func import subscribed, encode, decode, get_messages
-from database.database import add_user, del_user, full_userbase, present_user, fsub, req_db
-from pyrogram.types import ChatJoinRequest
+from config import ADMINS, FORCE_MSG
+from database.database import fsub, req_db
 
-        
+
 @Bot.on_message(filters.command('start') & filters.private)
 async def not_joined(client: Client, message: Message):
     buttons = []
-    
+
     bot_id = client.me.id
+
+    # Fetch forced subscription channels
     fsub_entry = fsub.find_one({"_id": bot_id})
+    if fsub_entry and "channel_ids" in fsub_entry:
+        force_sub_channels = fsub_entry["channel_ids"]
+    else:
+        force_sub_channels = []
 
-    if not fsub_entry or "channel_ids" not in fsub_entry:
-        return
+    # Fetch join request channels
+    join_req_channels = req_db.find({})
 
-    force_sub_channels = fsub_entry["channel_ids"]
-    
-    # Iterate through each force subscription channel
+    # Create buttons for forced subscription channels
     for idx, force_sub_channel in enumerate(force_sub_channels, start=1):
         try:
             invite_link = await client.create_chat_invite_link(chat_id=force_sub_channel)
             buttons.append(
                 InlineKeyboardButton(
-                    f"Join Channel {idx}",
+                    f"Join FSub Channel {idx}",
                     url=invite_link.invite_link
                 )
             )
         except Exception as e:
-            print(f"Error creating invite link for channel {force_sub_channel}: {e}")
+            print(f"Error creating invite link for fsub channel {force_sub_channel}: {e}")
+
+    # Create buttons for join request channels
+    for idx, entry in enumerate(join_req_channels, start=1):
+        channel_id = entry["_id"]
+        try:
+            chat = await client.get_chat(int(channel_id))
+            buttons.append(
+                InlineKeyboardButton(
+                    f"Join Request Channel {idx}",
+                    url=chat.invite_link
+                )
+            )
+        except Exception as e:
+            print(f"Error getting chat info for join request channel {channel_id}: {e}")
 
     # Group buttons into rows of two
     button_rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
@@ -67,7 +81,7 @@ async def not_joined(client: Client, message: Message):
     )
 
 
-#add fsub in db 
+# Add fsub in db
 @Bot.on_message(filters.command('addfsub') & filters.private & filters.user(ADMINS))
 async def add_fsub(client, message):
     if len(message.command) == 1:
@@ -77,23 +91,32 @@ async def add_fsub(client, message):
     channel_ids = message.text.split()[1:]
     bot_id = client.me.id
 
+    invalid_ids = []
     for channel_id in channel_ids:
         try:
-            print(channel_id)
-            test_msg = await client.send_message(int(channel_id), "test")
+            channel_id_int = int(channel_id)
+            test_msg = await client.send_message(channel_id_int, "test")
             await test_msg.delete()
-        except:
-            await message.reply(f"Please make admin bot in channel_id: {channel_id} or double check the id.")
-            return
+            fsub.update_one(
+                {"_id": bot_id},
+                {"$addToSet": {"channel_ids": channel_id_int}},
+                upsert=True
+            )
+        except ValueError:
+            invalid_ids.append(channel_id)
+        except FloodWait as e:
+            await asyncio.sleep(e.x)
+        except Exception as e:
+            print(f"Error adding channel ID {channel_id}: {e}")
+            invalid_ids.append(channel_id)
 
-    fsub.update_one(
-        {"_id": bot_id},
-        {"$addToSet": {"channel_ids": {"$each": channel_ids}}},
-        upsert=True
-    )
-    await message.reply(f"Added channel IDs: {', '.join(channel_ids)}")
+    if invalid_ids:
+        await message.reply(f"Invalid channel IDs or errors occurred: {', '.join(invalid_ids)}")
+    else:
+        await message.reply(f"Added channel IDs: {', '.join(channel_ids)}")
 
-### Deleting Channel IDs
+
+# Deleting Channel IDs
 @Bot.on_message(filters.command('delfsub') & filters.private & filters.user(ADMINS))
 async def del_fsub(client, message):
     if len(message.command) == 1:
@@ -101,7 +124,7 @@ async def del_fsub(client, message):
         return
 
     channel_ids = message.text.split()[1:]
-    bot_id = client.me.id  # Assuming `client.me.id` returns the bot's ID
+    bot_id = client.me.id
 
     fsub.update_one(
         {"_id": bot_id},
@@ -109,7 +132,8 @@ async def del_fsub(client, message):
     )
     await message.reply(f"Deleted channel IDs: {', '.join(channel_ids)}")
 
-### Showing All Channel IDs
+
+# Showing All Channel IDs
 @Bot.on_message(filters.command('showfsub') & filters.private & filters.user(ADMINS))
 async def show_fsub(client, message):
     bot_id = client.me.id
@@ -119,14 +143,18 @@ async def show_fsub(client, message):
         channel_ids = fsub_entry["channel_ids"]
         channel_info = []
         for channel_id in channel_ids:
-            chat = await client.get_chat(int(channel_id))
-            channel_info.append(f"→ **[{chat.title}]({chat.invite_link})**")
+            try:
+                chat = await client.get_chat(int(channel_id))
+                channel_info.append(f"→ **[{chat.title}]({chat.invite_link})**")
+            except Exception as e:
+                channel_info.append(f"→ **Channel ID: {channel_id}** (Error: {e})")
         if channel_info:
             await message.reply(f"**Force Subscribed channels:**\n" + "\n".join(channel_info), parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
         else:
             await message.reply("No subscribed channels found.")
     else:
         await message.reply("No subscribed channel IDs found.")
+
 
 # Add IDs in db
 @Bot.on_message(filters.command('addreq') & filters.private & filters.user(ADMINS))
@@ -136,13 +164,13 @@ async def add_req(client, message):
         return
 
     channel_ids = message.text.split()[1:]
-
     added_channels = []
     for channel_id in channel_ids:
         try:
-            test_msg = await client.send_message(int(channel_id), "test")
+            channel_id_int = int(channel_id)
+            test_msg = await client.send_message(channel_id_int, "test")
             await test_msg.delete()
-            req_db.update_one({"_id": channel_id}, {"$set": {"_id": channel_id}}, upsert=True)
+            req_db.update_one({"_id": channel_id_int}, {"$set": {"_id": channel_id_int}}, upsert=True)
             added_channels.append(channel_id)
         except Exception as e:
             await message.reply(f"Please make the bot an admin in channel ID: {channel_id} or double-check the ID. Error: {e}")
@@ -151,19 +179,19 @@ async def add_req(client, message):
     if added_channels:
         await message.reply(f"Added channel IDs: {', '.join(added_channels)}")
 
+
 # Deleting Channel IDs
 @Bot.on_message(filters.command('delreq') & filters.private & filters.user(ADMINS))
 async def del_req(client, message):
     if len(message.command) == 1:
-        await message.reply("Please provide channel IDs to delete from fsub in the bot. If deleting more than one, separate IDs with spaces.")
+        await message.reply("Please provide channel IDs to delete from the request database. If deleting more than one, separate IDs with spaces.")
         return
 
     channel_ids = message.text.split()[1:]
-
     deleted_channels = []
     for channel_id in channel_ids:
         try:
-            result = req_db.delete_one({"_id": channel_id})
+            result = req_db.delete_one({"_id": int(channel_id)})
             if result.deleted_count > 0:
                 deleted_channels.append(channel_id)
             else:
@@ -173,6 +201,7 @@ async def del_req(client, message):
 
     if deleted_channels:
         await message.reply(f"Deleted channel IDs: {', '.join(deleted_channels)}")
+
 
 # Showing All Channel IDs
 @Bot.on_message(filters.command('showreq') & filters.private & filters.user(ADMINS))
@@ -214,6 +243,7 @@ async def join_reqs(client, join_req: ChatJoinRequest):
             upsert=True
         )
 
+
 # Resetting User_INFO for a Channel ID
 @Bot.on_message(filters.command('rreset') & filters.private & filters.user(ADMINS))
 async def reset_req(client, message):
@@ -223,7 +253,7 @@ async def reset_req(client, message):
 
     channel_id = message.text.split()[1]
     try:
-        result = req_db.update_one({"_id": channel_id}, {"$unset": {"User_INFO": ""}})
+        result = req_db.update_one({"_id": int(channel_id)}, {"$unset": {"User_INFO": ""}})
         if result.modified_count > 0:
             await message.reply(f"User info reset for channel ID: {channel_id}")
         else:
