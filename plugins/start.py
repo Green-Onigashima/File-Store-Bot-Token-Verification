@@ -16,6 +16,8 @@ from database.database import add_admin, add_user, del_admin, del_user, full_adm
 
 SECONDS = TIME 
 TUT_VID = f"{TUT_VID}"
+WAIT_MSG = """<b>Processing...</b>"""
+REPLY_ERROR = """<blockquote><b>Use this command as a reply to any telegram message without any spaces.</b></blockquote>"""
 
 
 @Bot.on_message(filters.command('start') & filters.private & subscribed & subscribed2)
@@ -28,7 +30,7 @@ async def start_command(client: Client, message: Message):
             pass
     if USE_SHORTLINK:
         for i in range(1):
-            if id in ADMINS:
+            if id in PREMIUM_USERS:
                 continue
             verify_status = await get_verify_status(id)
             if verify_status['is_verified'] and VERIFY_EXPIRE < (time.time() - verify_status['verified_time']):
@@ -36,15 +38,15 @@ async def start_command(client: Client, message: Message):
             if "verify_" in message.text:
                 _, token = message.text.split("_", 1)
                 if verify_status['verify_token'] != token:
-                    return await message.reply("Your token is invalid or Expired ⌛. Try again by clicking /start")
+                    return await message.reply("<blockquote><b>🔴 Your token verification is invalid or Expired, Hit /start command and try again<b></blockquote>")
                 await update_verify_status(id, is_verified=True, verified_time=time.time())
                 if verify_status["link"] == "":
                     reply_markup = None
-                await message.reply(f"Your token successfully verified and valid for: 24 Hour ⏳", reply_markup=reply_markup, protect_content=False, quote=True)
+                await message.reply(f"<blockquote><b>Hooray 🎉, your token verification is successful\n\n Now you can access all files for 24-hrs...</b></blockquote>", reply_markup=reply_markup, protect_content=False, quote=True)
     if len(message.text) > 7:
         for i in range(1):
             if USE_SHORTLINK : 
-                if id not in ADMINS:
+                if id not in PREMIUM_USERS:
                     try:
                         if not verify_status['is_verified']:
                             continue
@@ -96,7 +98,7 @@ async def start_command(client: Client, message: Message):
                     reply_markup = None 
                 try:    
                     snt_msg = await msg.copy(chat_id=message.from_user.id, caption=caption, parse_mode=ParseMode.HTML,  reply_markup=reply_markup, protect_content=PROTECT_CONTENT)
-                    await asyncio.sleep(0.5)    
+                    await asyncio.sleep(0.1)    
                     snt_msgs.append(snt_msg)    
                 except FloodWait as e:  
                     await asyncio.sleep(e.x)    
@@ -105,19 +107,19 @@ async def start_command(client: Client, message: Message):
                 except: 
                     pass    
                 
-            notification_msg = await message.reply(f"<b>❗️ <u>Notice</u> ❗️</b>\n\n<b>This file will be  deleted in  {SECONDS // 60} minutes. Please save or forward it to your saved messages before it gets deleted.</b>")
+            notification_msg = await message.reply(f"<blockquote><b>🔴 This file will be  deleted in 30 minutes. Please save or forward it to your saved messages before it gets deleted.</b></blockquote>")
             await asyncio.sleep(SECONDS)    
             for snt_msg in snt_msgs:    
                 try:    
                     await snt_msg.delete()  
                 except: 
                     pass    
-            await notification_msg.edit("<b>Your file has been successfully deleted! 😼</b>")  
+            await notification_msg.edit("<blockquote><b>📯 Your file has been successfully deleted!</b></blockquote>")  
             return  
     if (1 == 1):
         for i in range(1):
             if USE_SHORTLINK : 
-                if id not in ADMINS:
+                if id not in PREMIUM_USERS:
                     try:
                         if not verify_status['is_verified']:
                             continue
@@ -126,8 +128,14 @@ async def start_command(client: Client, message: Message):
             reply_markup = InlineKeyboardMarkup(
                 [
                     [
-                        InlineKeyboardButton("• ᴄʜᴀɴɴᴇʟs", callback_data="about"),
-                        InlineKeyboardButton("ᴄʟᴏsᴇ •", callback_data="close")
+                        InlineKeyboardButton("➕ Purchase premium membership", callback_data="premium")
+                    ],
+                    [
+                        InlineKeyboardButton("☎️ Help", callback_data="about"),
+                        InlineKeyboardButton("📯 Feature", callback_data="help")
+                    ],
+                    [
+                        InlineKeyboardButton("📴 Close", callback_data="close")
                     ]
                 ]
             )
@@ -146,7 +154,7 @@ async def start_command(client: Client, message: Message):
             return
     if (1 == 1):
         if USE_SHORTLINK : 
-            if id in ADMINS:
+            if id in PREMIUM_USERS:
                 return
             verify_status = await get_verify_status(id)
             if not verify_status['is_verified']:
@@ -155,28 +163,19 @@ async def start_command(client: Client, message: Message):
                 link = await get_shortlink(SHORTLINK_API_URL, SHORTLINK_API_KEY,f'https://telegram.dog/{client.username}?start=verify_{token}')
                 if USE_PAYMENT:
                     btn = [
-                    [InlineKeyboardButton("Click Here 👆", url=link),
-                    InlineKeyboardButton('How to open this link 👆', url=TUT_VID)],
-                    [InlineKeyboardButton("Buy Premium plan", callback_data="buy_prem")]
+                    [InlineKeyboardButton("↪️ Get free access for 24-hrs ↩️", url=link),
+                    InlineKeyboardButton('🦋 Tutorial', url=TUT_VID)],
+                    [InlineKeyboardButton("➕ Purchase premium membership", callback_data="premium")]
                     ]
                 else:
                     btn = [
-                    [InlineKeyboardButton("Click Here 👆", url=link)],
-                    [InlineKeyboardButton('How to open this link 👆', url=TUT_VID)]
+                    [InlineKeyboardButton("↪️ Get free access for 24-hrs ↩️", url=link)],
+                    [InlineKeyboardButton('🦋 Tutorial', url=TUT_VID)]
                     ]
-                await message.reply(f"Your Ads token is expired, refresh your token and try again. \n\nToken Timeout: {get_exp_time(VERIFY_EXPIRE)}\n\nWhat is the token?\n\nThis is an ads token. If you pass 1 ad, you can use the bot for 24 Hour after passing the ad", reply_markup=InlineKeyboardMarkup(btn), protect_content=False, quote=True)
+                await message.reply(f"<blockquote><b>ℹ️ Hi @{message.from_user.username}\nYour verification is expired, click on below button and complete the verification to\n <u>Get free access for 24-hrs</u></b></blockquote>", reply_markup=InlineKeyboardMarkup(btn), protect_content=False, quote=True)
                 return
         return
 
-
-    
-#=====================================================================================##
-
-WAIT_MSG = """<b>Processing ...</b>"""
-
-REPLY_ERROR = """<code>Use this command as a replay to any telegram message without any spaces.</code>"""
-
-#=====================================================================================##
 
 @Bot.on_message(filters.command('start') & filters.private)
 async def not_joined(client: Client, message: Message):
@@ -219,7 +218,7 @@ async def not_joined(client: Client, message: Message):
 async def get_users(client: Bot, message: Message):
     msg = await client.send_message(chat_id=message.chat.id, text=WAIT_MSG)
     users = await full_userbase()
-    await msg.edit(f"{len(users)} users are using this bot 👥")
+    await msg.edit(f"<blockquote><b>{len(users)} users are using this bot.</b><blockquote>")
     return
 
 @Bot.on_message(filters.private & filters.command('broadcast') & filters.user(ADMINS))
@@ -232,8 +231,8 @@ async def send_text(client: Bot, message: Message):
         blocked = 0
         deleted = 0
         unsuccessful = 0
-
-        pls_wait = await message.reply("<i>Broadcasting Message.. This will Take Some Time ⌚</i>")
+        
+        pls_wait = await message.reply("<blockquote><b>Broadcasting Message.. This will Take Some Time</b></blockquote>")
         for chat_id in query:
             try:
                 await broadcast_msg.copy(chat_id)
@@ -252,33 +251,19 @@ async def send_text(client: Bot, message: Message):
                 unsuccessful += 1
                 pass
             total += 1
-
-        status = f"""<b><u>Broadcast Completed 🟢</u>
-                
-                Total Users: <code>{total}</code>
-                Successful: <code>{successful}</code>
-                Blocked Users: <code>{blocked}</code>
-                Deleted Accounts: <code>{deleted}</code>
-                Unsuccessful: <code>{unsuccessful}</code></b>"""
-
+        
+        status = f"""<blockquote><b>Broadcast Completed
+-Total Users     : {total}
+-Successful      : {successful}
+-Blocked Users   : {blocked}
+-Deleted Accounts: {deleted}
+-Unsuccessful    : {unsuccessful}</b></blockquote>"""       
         return await pls_wait.edit(status)
-
     else:
         msg = await message.reply(REPLY_ERROR)
         await asyncio.sleep(8)
         await msg.delete()
     return
-
-@Bot.on_message(filters.command('auth') & filters.private)
-async def auth_command(client: Bot, message: Message):
-    await client.send_message(
-        chat_id=OWNER_ID,
-        text=f"Message for @{OWNER_TAG}\n<code>{message.from_user.id}</code>\n/add_admin <code>{message.from_user.id}</code> 🤫",
-    )
-
-    await message.reply("Please wait for verification from the owner. 🫣")
-    return
-
 
 @Bot.on_message(filters.command('add_admin') & filters.private & filters.user(OWNER_ID))
 async def command_add_admin(client: Bot, message: Message):
@@ -351,7 +336,7 @@ async def delete_admin_command(client: Bot, message: Message):
 @Bot.on_message(filters.command('admins')  & filters.private & filters.private)
 async def admin_list_command(client: Bot, message: Message):
     admin_list = await full_adminbase()
-    await message.reply(f"Full admin list 📃\n<code>{admin_list}</code>")
+    await message.reply(f"<blockquote><b>Full admin list\n{admin_list}</b></blockquote>")
     return
 
 @Bot.on_message(filters.command('ping')  & filters.private)
@@ -360,22 +345,23 @@ async def check_ping_command(client: Bot, message: Message):
     rm = await message.reply_text("Pinging....", quote=True)
     end_t = time.time()
     time_taken_s = (end_t - start_t) * 1000
-    await rm.edit(f"Ping 🔥!\n{time_taken_s:.3f} ms")
+    await rm.edit(f"<blockquote><b>💡Pong!\n{time_taken_s:.3f} ms</b></blockquote>")
     return
 
 
 @Client.on_message(filters.private & filters.command('restart') & filters.user(ADMINS))
 async def restart(client, message):
     msg = await message.reply_text(
-        text="<i>Trying To Restarting.....</i>",
+        text="<blockquote><b>Trying to restart the bot.....</b></blockquote>",
         quote=True
     )
     await asyncio.sleep(5)
-    await msg.edit("<i>Server Restarted Successfully ✅</i>")
+    await msg.edit("<blockquote><b>@{client.username} restarted successfully</b></blockquote>")
     try:
         os.execl(sys.executable, sys.executable, *sys.argv)
     except Exception as e:
         print(e)
+
 
 
 if USE_PAYMENT:
@@ -383,33 +369,35 @@ if USE_PAYMENT:
     async def add_user_premium_command(client: Bot, message: Message):
         while True:
             try:
-                user_id = await client.ask(text="Enter id of user 🔢\n /cancel to cancel : ",chat_id = message.from_user.id, timeout=60)
+                user_id = await client.ask(text="Enter id of user\nHit /cancel to cancel : ",chat_id = message.from_user.id, timeout=60)
             except Exception as e:
                 print(e)
                 return  
             if user_id.text == "/cancel":
-                await user_id.edit("Cancelled 😉!")
+                await user_id.edit("Cancelled!")
                 return
             try:
                 await Bot.get_users(user_ids=user_id.text, self=client)
                 break
             except:
-                await user_id.edit("❌ Error 😖\n\nThe admin id is incorrect.", quote = True)
+                await user_id.edit("The admin id is incorrect.", quote = True)
                 continue
         user_id = int(user_id.text)
         while True:
             try:
-                timeforprem = await client.ask(text="Enter the amount of time you want to provide the premium \nChoose correctly. Its not reversible.\n\n⁕ <code>1</code> for 7 days.\n⁕ <code>2</code> for 1 Month\n⁕ <code>3</code> for 3 Month\n⁕ <code>4</code> for 6 Month\n⁕ <code>5</code> for 1 year.🤑", chat_id=message.from_user.id, timeout=60)
+                timeforprem = await client.ask(text="<blockquote><b>Enter the amount of time Choose correctly.\n\nEnter 0 : For zero \nEnter 1 : For 7 days\nEnter 2 : For 1 month\nEnter 3 : For 3 months\nEnter 4 : For 6 months\nEnter 5 : For 1 year</b></blockquote>", chat_id=message.from_user.id, timeout=60)
             except Exception as e:
                 print(e)
                 return
-            if not int(timeforprem.text) in [1, 2, 3, 4, 5]:
-                await message.reply("You have given wrong input. 😖")
+            if not int(timeforprem.text) in [0, 1, 2, 3, 4, 5]:
+                await message.reply("You have given wrong input.")
                 continue
             else:
                 break
         timeforprem = int(timeforprem.text)
-        if timeforprem==1:
+        if timeforprem==0:
+            timestring = "24 hrs"           
+        elif timeforprem==1:
             timestring = "7 days"
         elif timeforprem==2:
             timestring = "1 month"
@@ -421,14 +409,13 @@ if USE_PAYMENT:
             timestring = "1 year"
         try:
             await increasepremtime(user_id, timeforprem)
-            await message.reply("Premium added! 🤫")
+            await message.reply("Premium added!")
             await client.send_message(
             chat_id=user_id,
-            text=f"Update for you\n\nPremium plan of {timestring} added to your account. 🤫",
+            text=f"<blockquote><b>Premium plan of {timestring} added to your account.</b></blockquote>",
         )
         except Exception as e:
             print(e)
-            await message.reply("Some error occurred.\nCheck logs.. 😖\nIf you got premium added message then its ok.")
+            await message.reply("Some error occurred.\nCheck logs...\nIf you got premium added message then its ok.")
         return
-
         
