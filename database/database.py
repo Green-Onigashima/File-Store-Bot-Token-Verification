@@ -7,6 +7,8 @@ database = dbclient[DB_NAME]
 
 user_data = database['users']
 admin_data= database['admins']
+fsub = database['fsub']
+req_db = database['reqdb']
 
 default_verify = {
     'is_verified': False,
