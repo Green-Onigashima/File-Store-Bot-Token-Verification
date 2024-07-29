@@ -11,7 +11,7 @@ from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 
 from bot import Bot
 from config import *
-from helper_func import subscribed, encode, decode, get_readable_time, increasepremtime, get_messages, get_shortlink, get_verify_status, update_verify_status, get_exp_time
+from helper_func import subscribed, requested, encode, decode, get_readable_time, increasepremtime, get_messages, get_shortlink, get_verify_status, update_verify_status, get_exp_time
 from database.database import add_admin, add_user, del_admin, del_user, full_adminbase, full_userbase, present_admin, present_user
 
 SECONDS = TIME 
@@ -20,7 +20,7 @@ WAIT_MSG = """<b>Processing...</b>"""
 REPLY_ERROR = """<blockquote><b>Use this command as a reply to any telegram message without any spaces.</b></blockquote>"""
 
 
-@Bot.on_message(filters.command('start') & filters.private & subscribed)
+@Bot.on_message(filters.command('start') & filters.private & subscribed & requested)
 async def start_command(client: Client, message: Message):
     id = message.from_user.id
     if not await present_user(id):
