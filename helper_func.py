@@ -1,3 +1,4 @@
+
 import base64
 import re
 import asyncio
@@ -9,12 +10,11 @@ from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait
 from shortzy import Shortzy
 from database.database import user_data, db_verify_status, db_update_verify_status
-
 from database.database import fsub, req_db
 
 async def is_subscribed(filter, client, update):
     bot_id = client.me.id
-    fsub_entry = fsub.find_one({"_id": bot_id})
+    fsub_entry = await fsub.find_one({"_id": "force_sub_channels"})
 
     if not fsub_entry or "channel_ids" not in fsub_entry:
         return True
@@ -35,6 +35,18 @@ async def is_subscribed(filter, client, update):
 
     return True
 
+async def is_requested(filter, client, update):
+    bot_id = client.me.id
+    req_db_entry = await req_db.find_one({"_id": "request_channels"})
+
+    if not req_db_entry or "channel_ids" not in req_db_entry:
+        return True
+    
+    request_channels = req_db_entry["channel_ids"]    
+    user_id = update.from_user.id
+    
+    # Since we're dealing with join requests, we don't need to check member status
+    return True
 
 async def encode(string):
     string_bytes = string.encode("ascii")
@@ -160,3 +172,4 @@ async def increasepremtime(user_id : int, timeforprem : int):
     await update_verify_status(user_id, is_verified=True, verified_time=time.time()-realtime)
 
 subscribed = filters.create(is_subscribed)
+requested = filters.create(is_requested)
