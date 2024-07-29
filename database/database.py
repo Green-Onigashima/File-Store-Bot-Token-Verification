@@ -78,3 +78,26 @@ async def full_adminbase():
     user_docs = admin_data.find()
     user_ids = [int(doc['_id']) async for doc in user_docs]
     return user_ids
+
+
+#premium_users
+
+async def present_premium_user(user_id: int):
+    found = await premium_user_data.find_one({'_id': user_id})
+    return bool(found)
+
+async def add_premium_user(user_id: int):
+    user = new_user(user_id)
+    await premium_user_data.insert_one(user)
+    PREMIUM_USERS.append(int(user_id))
+    return
+
+async def del_premium_user(user_id: int):
+    await premium_user_data.delete_one({'_id': user_id})
+    PREMIUM_USERS.remove(int(user_id))
+    return
+
+async def full_premium_userbase():
+    user_docs = premium_user_data.find()
+    user_ids = [int(doc['_id']) async for doc in user_docs]
+    return user_ids
