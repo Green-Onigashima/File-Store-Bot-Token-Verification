@@ -1,4 +1,3 @@
-
 import motor.motor_asyncio
 from config import ADMINS, DB_URL, DB_NAME
 
@@ -7,10 +6,9 @@ database = dbclient[DB_NAME]
 
 user_data = database['users']
 admin_data = database['admins']
-premium_user_data =['premium_users']
 
 fsub = database['fsub']
-req_db = database['reqdb']
+req_db = database['req_db']
 
 default_verify = {
     'is_verified': False,
@@ -30,7 +28,7 @@ def new_user(id):
         }
     }
 
-#users
+# Users
 async def present_user(user_id: int):
     found = await user_data.find_one({'_id': user_id})
     return bool(found)
@@ -58,12 +56,10 @@ async def del_user(user_id: int):
     await user_data.delete_one({'_id': user_id})
     return
 
-#admins
-
+# Admins
 async def present_admin(user_id: int):
     found = await admin_data.find_one({'_id': user_id})
     return bool(found)
-
 
 async def add_admin(user_id: int):
     user = new_user(user_id)
@@ -81,25 +77,46 @@ async def full_adminbase():
     user_ids = [int(doc['_id']) async for doc in user_docs]
     return user_ids
 
+# Force Subscription Management
+async def add_force_sub_channel(channel_id: int):
+    await fsub.update_one(
+        {"_id": "force_sub_channels"},
+        {"$addToSet": {"channel_ids": channel_id}},
+        upsert=True
+    )
 
-#premium_users
+async def remove_force_sub_channel(channel_id: int):
+    await fsub.update_one(
+        {"_id": "force_sub_channels"},
+        {"$pull": {"channel_ids": channel_id}}
+    )
 
-async def present_premium_user(user_id: int):
-    found = await premium_user_data.find_one({'_id': user_id})
-    return bool(found)
+async def get_force_sub_channels():
+    fsub_entry = await fsub.find_one({"_id": "force_sub_channels"})
+    return fsub_entry.get("channel_ids", []) if fsub_entry else []
 
-async def add_premium_user(user_id: int):
-    user = new_user(user_id)
-    await premium_user_data.insert_one(user)
-    PREMIUM_USERS.append(int(user_id))
-    return
+# Request Subscription Management
+async def add_request_channel(channel_id: int):
+    await req_db.update_one(
+        {"_id": "request_channels"},
+        {"$addToSet": {"channel_ids": channel_id}},
+        upsert=True
+    )
 
-async def del_premium_user(user_id: int):
-    await premium_user_data.delete_one({'_id': user_id})
-    PREMIUM_USERS.remove(int(user_id))
-    return
+async def remove_request_channel(channel_id: int):
+    await req_db.update_one(
+        {"_id": "request_channels"},
+        {"$pull": {"channel_ids": channel_id}}
+    )
 
-async def full_premium_userbase():
-    user_docs = premium_user_data.find()
-    user_ids = [int(doc['_id']) async for doc in user_docs]
-    return user_ids
+async def get_request_channels():
+    req_db_entry = await req_db.find_one({"_id": "request_channels"})
+    return req_db_entry.get("channel_ids", []) if req_db_entry else []
+
+# Join Requests Tracking
+async def add_join_request(channel_id: int, user_data):
+    await req_db.update_one(
+        {"_id": channel_id},
+        {"$push": {"User_INFO": user_data}},
+        upsert=True
+    )
