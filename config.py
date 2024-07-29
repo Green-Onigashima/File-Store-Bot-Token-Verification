@@ -1,23 +1,14 @@
-from operator import add
 import os
-from os import environ, getenv
 import logging
-#import dotenv
-
-#dotenv.load_dotenv()
-
+from operator import add
+from os import environ, getenv
 from logging.handlers import RotatingFileHandler
 
-#force user to join your backup channel leave 0 if you don't need.
-#FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "0"))
-#FORCE_SUB_CHANNEL2 = int(os.environ.get("FORCE_SUB_CHANNEL2", "0"))
+#import dotenv
+#dotenv.load_dotenv()
 
-#if FORCE_SUB_CHANNEL > FORCE_SUB_CHANNEL2:
-#    temp = FORCE_SUB_CHANNEL2 
-#    FORCE_SUB_CHANNEL2 = FORCE_SUB_CHANNEL
-#    FORCE_SUB_CHANNEL = temp
 
-BOT_STATS_TEXT = os.environ.get("BOTS_STATS_TEXT","<blockquote><b>BOT UPTIME: {uptime}</b></blockquote>")
+
 
 TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "6105757517:AAHS2KgJDLuEErCoLyxkfOjCYwUhOZSvnlY") 
 APP_ID = int(os.environ.get("APP_ID", "25695562"))
@@ -26,7 +17,7 @@ CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1001732352061"))
 CHANNEL_LINK = os.environ.get("CHANNEL_LINK", "https://t.me/+CT5g4kpXx-tlN2I1")
 OWNER_ID = int(os.environ.get("OWNER_ID", "1895952308"))
 PORT = os.environ.get("PORT", "8080")
-DB_URL = os.environ.get("DB_URL", "mongodb+srv://lavda:lassan@cluster0.9uhmlry.mongodb.net/")
+DB_URL = os.environ.get("DB_URL", "")
 DB_NAME = os.environ.get("DB_NAME", "Cluster0")
 
 TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
@@ -37,12 +28,10 @@ TIME = int(os.environ.get("TIME", "60"))
 #USE_PAYMENT = True if (os.environ.get("USE_PAYMENT", "FALSE") == "TRUE") & (USE_SHORTLINK) else False
 
 PAYMENT_LOGS = int(environ.get('PAYMENT_LOGS', '-1001968254468'))
-USE_SHORTLINK = os.environ.get('USE_SHORTLINK', "True")
 SHORTLINK_API_URL = os.environ.get("SHORTLINK_API_URL", "modijiurl.com")
 SHORTLINK_API_KEY = os.environ.get("SHORTLINK_API_KEY", "a0c51b7b2b16924757c1e2eb6ca27096f9df7208")
 VERIFY_EXPIRE = int(os.environ.get('VERIFY_EXPIRE', "43200"))
-TUT_VID = os.environ.get("TUT_VID","https://t.me/Anime_Elixir/12")
-USE_PAYMENT = os.environ.get("USE_PAYMENT", "True")
+TUT_VID = os.environ.get("TUT_VID", "https://t.me/Anime_Elixir/12")
 UPI_USERNAME = os.environ.get("UPI_USERNAME", "StupidBoi69")
 
 
@@ -56,9 +45,28 @@ USER_REPLY_TEXT = "<blockquote><b>🔴 Don't send me messages directly I'm only 
 CUSTOM_CAPTION = os.environ.get("CUSTOM_CAPTION", None)
 PROTECT_CONTENT = os.environ.get("PROTECT_CONTENT", "False")
 DISABLE_CHANNEL_BUTTON = os.environ.get("DISABLE_CHANNEL_BUTTON", "True")
+USE_PAYMENT = os.environ.get("USE_PAYMENT", "True")
+USE_SHORTLINK = os.environ.get('USE_SHORTLINK', "True")
 
+try:
+    ADMINS=[]
+    for x in (os.environ.get("ADMINS", "1895952308").split()):
+        ADMINS.append(int(x))
+except ValueError:
+        raise Exception("Your Admins list does not contain valid integers.")
 ADMINS = []
 ADMINS.append(OWNER_ID)
+
+
+try:
+    PREMIUM_USERS=[]
+    for x in (os.environ.get("PREMIUM_USERS", "1895952308").split()):
+        PREMIUM_USERS.append(int(x))
+except ValueError:
+        raise Exception("Your Admins list does not contain valid integers.")
+PREMIUM_USERS = []
+PREMIUM_USERS.append(ADMINS)
+
 
 LOG_FILE_NAME = "logs.txt"
 logging.basicConfig(
