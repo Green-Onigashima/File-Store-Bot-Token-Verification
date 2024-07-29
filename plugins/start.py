@@ -30,7 +30,7 @@ async def start_command(client: Client, message: Message):
             pass
     if USE_SHORTLINK:
         for i in range(1):
-            if id in PREMIUM_USERS:
+            if id in ADMINS:
                 continue
             verify_status = await get_verify_status(id)
             if verify_status['is_verified'] and VERIFY_EXPIRE < (time.time() - verify_status['verified_time']):
@@ -46,7 +46,7 @@ async def start_command(client: Client, message: Message):
     if len(message.text) > 7:
         for i in range(1):
             if USE_SHORTLINK : 
-                if id not in PREMIUM_USERS:
+                if id not in ADMINS:
                     try:
                         if not verify_status['is_verified']:
                             continue
@@ -119,7 +119,7 @@ async def start_command(client: Client, message: Message):
     if (1 == 1):
         for i in range(1):
             if USE_SHORTLINK : 
-                if id not in PREMIUM_USERS:
+                if id not in ADMINS:
                     try:
                         if not verify_status['is_verified']:
                             continue
@@ -154,7 +154,7 @@ async def start_command(client: Client, message: Message):
             return
     if (1 == 1):
         if USE_SHORTLINK : 
-            if id in PREMIUM_USERS:
+            if id in ADMINS:
                 return
             verify_status = await get_verify_status(id)
             if not verify_status['is_verified']:
