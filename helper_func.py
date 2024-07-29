@@ -4,44 +4,37 @@ import asyncio
 import time
 from pyrogram import filters
 from pyrogram.enums import ChatMemberStatus
-from config import FORCE_SUB_CHANNEL, FORCE_SUB_CHANNEL2, ADMINS
+from config import *
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait
 from shortzy import Shortzy
 from database.database import user_data, db_verify_status, db_update_verify_status
 
+from database.database import fsub, req_db
 
 async def is_subscribed(filter, client, update):
-    if not FORCE_SUB_CHANNEL:
+    bot_id = client.me.id
+    fsub_entry = fsub.find_one({"_id": bot_id})
+
+    if not fsub_entry or "channel_ids" not in fsub_entry:
         return True
+    
+    force_sub_channels = fsub_entry["channel_ids"]    
     user_id = update.from_user.id
+    
     if user_id in ADMINS:
         return True
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL, user_id = user_id)
-    except UserNotParticipant:
-        return False
+    for force_sub_channel in force_sub_channels:
+        try:
+            member = await client.get_chat_member(chat_id=int(force_sub_channel), user_id=user_id)
+        except UserNotParticipant:
+            return False
 
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    else:
-        return True
+        if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
+            return False
 
-async def is_subscribed2(filter, client, update):
-    if not FORCE_SUB_CHANNEL:
-        return True
-    user_id = update.from_user.id
-    if user_id in ADMINS:
-        return True
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL2, user_id = user_id)
-    except UserNotParticipant:
-        return False
+    return True
 
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    else:
-        return True
 
 async def encode(string):
     string_bytes = string.encode("ascii")
@@ -87,7 +80,7 @@ async def get_message_id(client, message):
     elif message.forward_sender_name:
         return 0
     elif message.text:
-        pattern = r"https://t.me/(?:c/)?(.*)/(\d+)"
+        pattern = r"https://t.me/(?:c/)?(.*)/(\\d+)"
         matches = re.match(pattern,message.text)
         if not matches:
             return 0
@@ -152,7 +145,9 @@ def get_exp_time(seconds):
     return result
 
 async def increasepremtime(user_id : int, timeforprem : int):
-    if timeforprem == 1: 
+    if timeforprem == 0: 
+        realtime = 1
+    elif timeforprem == 1: 
         realtime = 86400*7
     elif timeforprem == 2:
         realtime = 86400*31
@@ -163,5 +158,5 @@ async def increasepremtime(user_id : int, timeforprem : int):
     elif timeforprem == 5:
         realtime == 86400*31*12
     await update_verify_status(user_id, is_verified=True, verified_time=time.time()-realtime)
+
 subscribed = filters.create(is_subscribed)
-subscribed2 = filters.create(is_subscribed2)
