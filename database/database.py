@@ -6,7 +6,9 @@ dbclient = motor.motor_asyncio.AsyncIOMotorClient(DB_URL)
 database = dbclient[DB_NAME]
 
 user_data = database['users']
-admin_data= database['admins']
+admin_data = database['admins']
+premium_user_data =['premium_users']
+
 fsub = database['fsub']
 req_db = database['reqdb']
 
